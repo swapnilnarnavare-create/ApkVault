@@ -1,0 +1,48 @@
+name: Build Discuss.TM APK
+
+on:
+  push:
+    branches: [discuss-tm]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build release APK
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Name APK with version
+        run: |
+          V=$(sed -nE "s/.*versionName '([^']+)'.*/\1/p" app/build.gradle)
+          cp app/build/outputs/apk/release/app-release.apk "Discuss.TM-v$V.apk"
+          echo "V=$V" >> "$GITHUB_ENV"
+          ls -la Discuss.TM-v$V.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Discuss.TM-v${{ env.V }}
+          path: Discuss.TM-v${{ env.V }}.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: discuss-tm-v${{ env.V }}
+          name: Discuss.TM v${{ env.V }}
+          target_commitish: ${{ github.sha }}
+          files: Discuss.TM-v${{ env.V }}.apk
+          make_latest: true

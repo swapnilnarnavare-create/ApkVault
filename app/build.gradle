@@ -1,0 +1,39 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'tm.discuss.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'tm.discuss.app'
+        minSdk 26
+        targetSdk 34
+        versionCode 22
+        versionName '2.2'
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('discusstm.jks')
+            storePassword 'dtmStore2026'
+            keyAlias 'discusstm'
+            keyPassword 'dtmStore2026'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    dependenciesInfo { includeInApk false; includeInBundle false }
+}
