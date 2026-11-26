@@ -1,0 +1,57 @@
+name: Build Discuss.TM Desktop
+
+on:
+  push:
+    branches: [discuss-tm-desktop]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate icons
+        run: npx --yes @tauri-apps/cli@2 icon src-tauri/app-icon.png
+
+      - name: Build
+        run: npx --yes @tauri-apps/cli@2 build
+
+      - name: Collect files
+        shell: pwsh
+        run: |
+          $v = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $short = ($v -split '\.')[0..1] -join '.'
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item src-tauri/target/release/discuss-tm.exe "out/Discuss.TM-v$short-portable.exe"
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*.exe | Select-Object -First 1
+          Copy-Item $setup.FullName "out/Discuss.TM-v$short-setup.exe"
+          Get-ChildItem out | Format-Table Name, Length
+          "V=$short" >> $env:GITHUB_ENV
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Discuss.TM-desktop-v${{ env.V }}
+          path: out/*
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: discuss-tm-desktop-v${{ env.V }}
+          name: Discuss.TM Desktop v${{ env.V }}
+          target_commitish: ${{ github.sha }}
+          files: out/*
+          make_latest: true
